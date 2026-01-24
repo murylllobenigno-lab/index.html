@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lotofácil Resultados</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+
+  <h1 class="text-3xl font-bold mb-6">Lotofácil - Resultados</h1>
+
+  <!-- Pesquisa de concurso -->
+  <div class="mb-4">
+    <input type="number" id="concursoInput" placeholder="Digite o número do concurso" class="p-2 rounded text-black" />
+    <button id="buscarBtn" class="bg-blue-500 px-4 py-2 rounded ml-2 font-bold">Buscar</button>
+  </div>
+
+  <div id="info" class="mb-4 text-lg"></div>
+  <div id="numeros" class="grid grid-cols-5 gap-2 mb-4"></div>
+
+  <!-- Lista de ganhadores -->
+  <div id="premiacao" class="text-gray-300"></div>
+
+  <script>
+    const concursoInput = document.getElementById("concursoInput");
+    const buscarBtn = document.getElementById("buscarBtn");
+    const infoDiv = document.getElementById("info");
+    const numerosDiv = document.getElementById("numeros");
+    const premiacaoDiv = document.getElementById("premiacao");
+
+    // Função para buscar concurso
+    function buscarConcurso(concurso) {
+      let url = concurso
+        ? `https://loteriascaixa-api.herokuapp.com/api/lotofacil/${concurso}`
+        : `https://loteriascaixa-api.herokuapp.com/api/lotofacil/latest`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(dados => {
+          // Atualiza info
+          infoDiv.textContent = `Concurso ${dados.concurso} — Data: ${dados.data}`;
+
+          // Atualiza números
+          numerosDiv.innerHTML = "";
+          dados.dezenas.forEach(num => {
+            const bola = document.createElement("div");
+            bola.className = "bg-green-500 text-black rounded-full p-4 text-center font-bold";
+            bola.textContent = num;
+            numerosDiv.appendChild(bola);
+          });
+
+          // Atualiza premiação se houver
+          premiacaoDiv.innerHTML = "";
+          if (dados.premiacao) {
+            const tabela = document.createElement("table");
+            tabela.className = "table-auto border-collapse border border-gray-500 w-full text-black";
+            tabela.innerHTML = `
+              <tr class="bg-gray-700">
+                <th class="border border-gray-500 p-2">Acertos</th>
+                <th class="border border-gray-500 p-2">Ganhadores</th>
+                <th class="border border-gray-500 p-2">Prêmio (R$)</th>
+              </tr>
+            `;
+            dados.premiacao.forEach(faixa => {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td class="border border-gray-500 p-2">${faixa.acertos}</td>
+                <td class="border border-gray-500 p-2">${faixa.ganhadores}</td>
+                <td class="border border-gray-500 p-2">${faixa.valor}</td>
+              `;
+              tabela.appendChild(tr);
+            });
+            premiacaoDiv.appendChild(tabela);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          infoDiv.textContent = "Erro ao buscar concurso.";
+          numerosDiv.innerHTML = "";
+          premiacaoDiv.innerHTML = "";
+        });
+    }
+
+    // Botão buscar
+    buscarBtn.addEventListener("click", () => {
+      const concurso = concursoInput.value.trim();
+      buscarConcurso(concurso);
+    });
+
+    // Busca último concurso ao carregar a página
+    buscarConcurso();
+  </script>
+
+</body>
+</html>
