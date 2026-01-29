@@ -4,3 +4,388 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>M.BOOT</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body class="bg-black text-white font-sans">
+
+<div id="app"></div>
+
+<!-- ========================= -->
+<!-- MODAL LOGIN -->
+<!-- ========================= -->
+<div id="loginModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+  <div class="bg-gray-900 p-6 rounded-xl w-80 relative">
+    <h2 class="text-xl font-bold text-yellow-400 mb-4 text-center">Login M.BOOT</h2>
+    <input id="loginUser" type="text" placeholder="Usuário" class="w-full p-2 mb-3 rounded bg-black border border-gray-700 text-white"/>
+    <input id="loginSenha" type="password" placeholder="Senha" class="w-full p-2 mb-3 rounded bg-black border border-gray-700 text-white"/>
+    <button onclick="confirmarLogin()" class="w-full bg-yellow-400 text-black font-bold py-2 rounded mb-2">Entrar</button>
+    <button onclick="fecharLogin()" class="absolute top-2 right-2 text-gray-400 hover:text-white">&times;</button>
+  </div>
+</div>
+
+<script>
+const app = document.getElementById('app');
+
+// =========================
+// VARIÁVEIS GLOBAIS
+// =========================
+let usuarios = [];
+let numerosData = [];
+let jogadasAlvo = {};
+let analises = {};
+let recolhido = false;
+
+// =========================
+// FUNÇÕES GERAIS
+// =========================
+function createElement(tag, className = '', content = '') {
+  const el = document.createElement(tag);
+  if(className) el.className = className;
+  if(content) el.innerHTML = content;
+  return el;
+}
+
+function pegarUltimos5Operacoes(){
+  return numerosData.slice(0,5);
+}
+
+function criarGrade(numeros) {
+  return numeros.map(n => `
+    <div class="numero w-7 h-7 text-xs flex items-center justify-center rounded 
+      text-white font-semibold border" data-number="${n}">
+      ${n}
+    </div>
+  `).join('');
+}
+
+function aplicarCores(tipo) {
+  const key = Object.keys(analises).find(k => k.toLowerCase() === tipo.toLowerCase());
+  const ativos = analises[key] || [];
+  const numeros = document.querySelectorAll('.numero');
+
+  numeros.forEach(el => {
+    const n = parseInt(el.dataset.number);
+    el.className = `numero w-7 h-7 text-xs flex items-center justify-center rounded text-white font-semibold border transition-all duration-300 ${
+      ativos.includes(n) ? 'bg-red-800' : 'bg-blue-900'
+    }`;
+  });
+}
+
+function atualizarGrade() {
+  const grid = document.getElementById('grid');
+  if(!grid) return;
+  const dados = recolhido ? numerosData.slice(0,12) : numerosData;
+  grid.innerHTML = criarGrade(dados);
+  const select = document.getElementById('analiseSelect');
+  if(select) aplicarCores(select.value);
+}
+
+// =========================
+// HEADER
+// =========================
+
+// =========================
+// ABA INICIO
+// =========================
+const abaInicio = createElement('section', 'p-4', `
+
+  <div class="grid gap-4">    <a href="https://blaze.bet.br/pt/games/roleta-brasileira" class="bg-gray-900 rounded-xl overflow-hidden block">  
+  <img src="https://assets.sitecontents.net/slots/133/desktopImage-Roleta-Brasileira-1-min-1696619712031.jpg" class="w-full" alt="Mercado 1">  
+</a>  
+
+<a href="https://blaze.bet.br/pt/games/mega-fire-blaze-roleta-brasileira-live" class="bg-gray-900 rounded-xl overflow-hidden block">  
+  <img src="https://d205654a3b2af1b75209-275b861a8577e42fdaf34f4c14f5e708.ssl.cf3.rackcdn.com/rYvNQwPAz/OAdaOIKgmOeKLr.jpg" class="w-full" alt="Mercado 1">  
+</a>  
+
+<a href="https://blaze.bet.br/pt/games/xxxtreme-lightning-roulette" class="bg-gray-900 rounded-xl overflow-hidden block">  
+  <img src="https://extensaogba.com/static/media/game_opt3.466c693c57751cdf7598.png" class="w-full" alt="Mercado 3">  
+</a>  
+
+<a href="https://blaze.bet.br/pt/games/immersive-roulette" class="bg-gray-900 rounded-xl overflow-hidden block">  
+  <img src="https://extensaogba.com/static/media/game_opt2.f113af9d61f7ac95a900.png" class="w-full" alt="Mercado 4">  
+</a>
+
+  <a href="https://blaze.bet.br/pt/games/roleta-ao-vivo" class="bg-gray-900 rounded-xl overflow-hidden block">  
+      <img src="https://rtcbrasil.com.br/settle/banner/roleta-ao-vivo.png" class="w-full" alt="Mercado 1">  
+    </a>  <a href="https://blaze.bet.br/pt/games/speed-auto-roulette" class="bg-gray-900 rounded-xl overflow-hidden block">  
+  <img src="https://extensaogba.com/static/media/game_opt4.1e6e1f3b7d5b6a651447.png" class="w-full" alt="Mercado 3">  
+</a>
+
+  </div>    
+`);  
+// =========================
+// ABA OPERACOES
+// =========================
+const abaOperacoes = createElement('section', 'p-4 hidden');
+abaOperacoes.innerHTML = `
+  <div class="flex justify-between items-center mb-4">
+    <select id="analiseSelect" class="bg-gray-800 text-white px-3 py-2 rounded w-1/2"></select>
+    <button id="recolherBtn" class="bg-yellow-600 text-black font-bold px-4 py-2 rounded ml-2">↑ Recolher ↑</button>
+  </div>
+  <div id="gridContainer" class="transition-colors duration-300 p-3 rounded border border-gray-700 bg-gradient-to-br from-gray-900 to-black max-h-[420px] overflow-y-auto">
+    <div id="grid" class="grid grid-cols-9 gap-1"></div>
+  </div><div class="mt-3">
+  <select id="roletaSelectBottom" class="w-full bg-gray-800 text-white px-3 py-2 rounded">
+    <option value="">Escolher roleta</option>
+    <option value="immersive">Immersive</option>
+    <option value="brasileira">Brasileira</option>
+    <option value="xxxtreme">XXXTreme</option>
+    <option value="auto roulette">Auto Roulette</option>
+    <option value="vip roulette">VIP Roulette</option>
+  </select>
+</div>
+`;
+
+// =========================
+// ABA MURYLLLO
+// =========================
+const abaMuryllo = createElement('section', 'p-4 hidden', `
+  <div class="bg-gray-900 p-2 rounded-xl border border-gray-700 mb-0">
+    <label class="block mb-0 text-sm text-gray-300">
+    </label>
+    <input id="ultimosAlvo" type="text" placeholder="0" class="w-full p-2 rounded bg-black border border-gray-700 text-white mb-0"/>
+    <div id="resultadoAlvo" class="mt-4 text-center"></div>
+  </div>
+`);
+
+// =========================
+// BOTAO FALAR COM ADM
+// =========================
+  const iframeArea = createElement(
+  'div',
+  'fixed inset-0 pt-36 pb-20 px-2 z-20 hidden'
+);
+
+iframeArea.innerHTML = `
+  <div class="w-full h-full rounded-xl overflow-hidden border-2 border-black bg-black">
+    <iframe
+      id="roletaFrame"
+      class="w-full h-full border-0 block"
+      src="https://7games.bet.br/pb/live-casino/home/-1/All?categoryName=all"
+      allowfullscreen>
+    </iframe>
+  </div>
+`;
+
+app.appendChild(iframeArea);
+const roletaBtnWrapper = createElement('div', 'fixed bottom-20 left-0 right-0 px-4 z-10');
+const roletaBtn = createElement(
+  'button',
+  'block w-full bg-green-550 text-center text-white py-3 rounded-lg font-semibold shadow-lg',
+  'ABRIR ROLETA'
+);
+
+roletaBtn.onclick = () => {
+  const frame = document.getElementById('roletaFrame');
+  iframeArea.classList.remove('hidden');
+
+  frame.src = 'https://7games.bet.br/pb/live-casino/home/-1/All?categoryName=all';
+};
+roletaBtnWrapper.appendChild(roletaBtn);
+
+// =========================
+// NAV
+// =========================
+const nav = createElement('nav', 'fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex justify-around py-3 border-t border-gray-700 z-10');
+const btnInicio = createElement('button', 'flex flex-col items-center text-sm', `<span class="material-icons">home</span>Inicio`);
+const btnOperacoes = createElement('button', 'flex flex-col items-center text-sm', `<span class="material-icons">casino</span>Sala de operações`);
+const btnMuryllo = createElement('button', 'flex flex-col items-center text-sm', `<span class="material-icons">star</span>Muryllo`);
+
+// =========================
+// FUNCOES ABA
+// =========================
+function atualizarAbas(ativa){
+  abaInicio.classList.add('hidden');
+  abaOperacoes.classList.add('hidden');
+  abaMuryllo.classList.add('hidden');
+
+  iframeArea.classList.add('hidden'); // só esconde
+  roletaBtnWrapper.classList.add('hidden');
+
+  btnInicio.classList.remove('text-yellow-400');
+  btnOperacoes.classList.remove('text-yellow-400');
+  btnMuryllo.classList.remove('text-yellow-400');
+
+  switch(ativa){
+    case 'inicio':
+      abaInicio.classList.remove('hidden');
+      btnInicio.classList.add('text-yellow-400');
+      break;
+
+    case 'operacoes':
+      abaOperacoes.classList.remove('hidden');
+      btnOperacoes.classList.add('text-yellow-400');
+      atualizarGrade();
+      break;
+
+    case 'muryllo':
+      abaMuryllo.classList.remove('hidden');
+      btnMuryllo.classList.add('text-yellow-400');
+
+      iframeArea.classList.remove('hidden'); // 👈 MOSTRA A ROLETA
+      processarAlvo();
+      break;
+  }
+}
+
+btnInicio.onclick = () => atualizarAbas('inicio');
+btnOperacoes.onclick = () => atualizarAbas('operacoes');
+btnMuryllo.onclick = () => atualizarAbas('muryllo');
+
+document.addEventListener('click', e => {
+  if(e.target && e.target.id==='recolherBtn'){
+    recolhido = !recolhido;
+    e.target.textContent = recolhido ? '↓ Expandir ↓' : '↑ Recolher ↑';
+    atualizarGrade();
+  }
+});
+
+document.addEventListener('change', e => {
+  if(e.target.id==='analiseSelect'){
+    aplicarCores(e.target.value);
+  }
+});
+
+// =========================
+// PROCESSAR ALVO
+// =========================
+function processarAlvo(){
+  const nums = pegarUltimos5Operacoes();
+  if(!nums || nums.length<3){
+    document.getElementById('resultadoAlvo').innerHTML='<span class="text-gray-400">Sem dados suficientes</span>';
+    return;
+  }
+  const inputEl = document.getElementById('ultimosAlvo');
+  if(inputEl) inputEl.value = nums.join(', ');
+
+  let cont = {};
+  nums.forEach(n=>{
+    (jogadasAlvo[n]||[]).forEach(v=>{
+      cont[v] = (cont[v]||0)+1;
+    });
+  });
+
+  const top = Object.entries(cont)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,3)
+    .map(e=>parseInt(e[0]));
+
+  document.getElementById('resultadoAlvo').innerHTML=`
+    <div class="text-lg font-bold mb-2"></div>
+    ${top.map((n,i)=>`<span class="inline-block px-4 py-2 m-1 rounded ${i===0?'bg-yellow-400 text-black':'bg-blue-600'}">${n}</span>`).join('')}
+  `;
+}
+
+// =========================
+// LOGIN SEGURO COM SHA-256
+// =========================
+async function confirmarLogin() {
+  const u = loginUser.value.trim();
+  const s = loginSenha.value.trim();
+
+  // comparar diretamente com o JSON
+  const ok = usuarios.some(x => x.user === u && x.senha === s);
+
+  if (!ok) return alert("❌ Usuário ou senha inválidos");
+
+  loginUser.value = loginSenha.value = '';
+
+  document.getElementById('loginModal').classList.add('hidden'); // esconde modal
+  atualizarGrade();        // desenha a grade
+  aplicarCores(document.getElementById('analiseSelect').value);  // coloração inicial
+}
+
+// =========================
+// CARREGAR JSON DE USUÁRIOS
+// =========================
+function carregarUsuarios() {
+  fetch('https://murylllobenigno-lab.github.io/Googlefiles/usuarios.json')
+    .then(r => r.json())
+    .then(dados => { usuarios = dados.usuarios || []; })
+    .catch(err => console.error("❌ Erro ao carregar usuários:", err));
+}
+function preencherAnalises() {
+  const select = document.getElementById('analiseSelect');
+  if (!select) return;
+
+  select.innerHTML = '';
+
+  Object.keys(analises).forEach((key, i) => {
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = key.toUpperCase();
+    if (i === 0) option.selected = true;
+    select.appendChild(option);
+  });
+
+  aplicarCores(select.value);
+}
+carregarUsuarios();
+
+// =========================
+// APPEND
+// =========================
+nav.appendChild(btnInicio);
+nav.appendChild(btnOperacoes);
+nav.appendChild(btnMuryllo);
+app.appendChild(abaInicio);
+app.appendChild(abaOperacoes);
+app.appendChild(abaMuryllo);
+app.appendChild(roletaBtnWrapper);
+app.appendChild(nav);
+
+// =========================
+// INICIO ABA
+// =========================
+atualizarAbas('inicio');
+
+// =========================
+// CARREGAR JSON DE DADOS
+// =========================
+fetch('https://murylllobenigno-lab.github.io/Googlefiles/dados.json')
+  .then(r=>r.json())
+  .then(dados=>{
+    numerosData = dados.numerosData || [];
+    analises = dados.analises || {};
+    jogadasAlvo = dados.jogadasAlvo || {};
+
+    atualizarGrade();
+    preencherAnalises(); // 👈 ESSENCIAL
+  })
+  .catch(err=>console.error("❌ Erro ao carregar JSON:",err));
+  fetch('https://murylllobenigno-lab.github.io/Googlefiles/roletas.json')
+  .then(r => r.json())
+  .then(data => {
+    dadosPorRoleta = data;
+    // inicializa com a primeira roleta
+    roletaAtual = Object.keys(dadosPorRoleta)[0];
+    numerosData = dadosPorRoleta[roletaAtual] || [];
+    atualizarGrade();
+    preencherRoletas(); // função que popula o select
+  })
+  .catch(err => console.error("Erro ao carregar roletas:", err));
+  function preencherRoletas() {
+  const select = document.getElementById('roletaSelectBottom');
+  if (!select) return;
+
+  select.innerHTML = '<option value="">Escolher roleta</option>';
+  Object.keys(dadosPorRoleta).forEach(nome => {
+    const opt = document.createElement('option');
+    opt.value = nome;
+    opt.textContent = nome.toUpperCase();
+    select.appendChild(opt);
+  });
+}
+  document.addEventListener('change', e => {
+  if (e.target.id === 'roletaSelectBottom') {
+    const nome = e.target.value;
+    if (!dadosPorRoleta[nome]) return;
+
+    numerosData = dadosPorRoleta[nome];
+    atualizarGrade(); // atualiza histórico
+  }
+});
+</script>
+</body>
+</html>
