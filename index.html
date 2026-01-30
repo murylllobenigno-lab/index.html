@@ -163,6 +163,14 @@ const abaMuryllo = createElement('section', 'p-4 hidden', `
 // =========================
 // BOTAO FALAR COM ADM
 // =========================
+ const butonBtnWrapper = createElement('div', 'fixed bottom-20 left-0 right-0 px-4 z-10');
+const butonBtn = createElement('a', 'block bg-blue-900 text-center text-white py-3 rounded-lg font-semibold shadow-lg hover: transition', 'FALAR COM ADM');
+butonBtn.href = 'https://www.instagram.com/murylllo_benygno?igsh=MW4wNG9tdGtteTFxdA==';
+butonBtn.target = '_blank';
+butonBtnWrapper.appendChild(butonBtn);
+  // =========================
+// inframe
+// =========================
   <!-- IFRAME ROLETA -->
 const iframeArea = createElement(
   'div',
@@ -187,7 +195,7 @@ const roletaBtnWrapper = createElement(
 
 const roletaBtn = createElement(
   'button',
-  'block w-full bg-green-600 text-center text-white py-3 rounded-lg font-semibold shadow-lg',
+  'block w-full bg-black text-center text-red py-3 rounded-lg font-semibold shadow-lg',
   'ABRIR ROLETA'
 );
 
@@ -201,7 +209,7 @@ roletaBtn.onclick = () => {
   // força recarregar a roleta
   frame.src = '';
   setTimeout(() => {
-    frame.src = 'https://7games.bet.br/pb/live-casino/home/-1/All?categoryName=all';
+    frame.src = 'https://7games.bet.br/pb/casino/slots/28/21031/immersive-roulette-evolution';
   }, 100);
 };
 
@@ -413,7 +421,7 @@ function processarAlvo(){
 }
 
 // =========================
-// LOGIN SEGURO COM SHA-256
+// LOGIN SEGURO 
 // =========================
 async function confirmarLogin() {
   const u = loginUser.value.trim();
@@ -464,7 +472,7 @@ carregarUsuarios();
 nav.appendChild(btnInicio);
 nav.appendChild(btnOperacoes);
 nav.appendChild(btnMuryllo);
-
+app.appendChild(butonBtnWrapper);
 app.appendChild(abaInicio);
 app.appendChild(abaOperacoes);
 app.appendChild(abaMuryllo);
