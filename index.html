@@ -1,74 +1,25 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Teste Roleta Immersive</title>
+import requests
 
-<style>
-body {
-  background: black;
-  color: white;
-  font-family: Arial;
-  padding: 20px;
-}
+URL = "https://api.casinoscores.com/svc-evolution-game-events/api/immersiveroulette?page=0&size=50&sort=data.settledAt,desc&duration=6"
 
-.numero {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 42px;
-  height: 42px;
-  margin: 4px;
-  border-radius: 50%;
-  font-weight: bold;
-  font-size: 16px;
-}
+r = requests.get(URL)
 
-.red { background: #c00; }
-.black { background: #111; border: 1px solid white; }
-.green { background: #0a0; }
-</style>
-</head>
+if r.status_code != 200:
+    print("Erro HTTP:", r.status_code)
+    exit()
 
-<body>
+data = r.json()
 
-<h2>🎰 Últimos Resultados - Immersive Roulette</h2>
-<div id="lista">Carregando...</div>
+numeros = []
 
-<script>
-async function carregar() {
-  try {
-    const proxy = "https://corsproxy.io/?";
-    const api = "https://api.casinoscores.com/svc-evolution-game-events/api/immersiveroulette?page=0&size=29&sort=data.settledAt,desc&duration=6";
+for rodada in data:
+    try:
+        numero = rodada["data"]["result"]["outcome"]["number"]
+        numeros.append(str(numero))
+    except:
+        pass
 
-    const res = await fetch(proxy + api);
-    const json = await res.json();
-
-    const lista = document.getElementById("lista");
-    lista.innerHTML = "";
-
-    const vermelhos = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
-
-    json.content.forEach(item => {
-      const num = item?.data?.result?.outcome?.number;
-      if (num === undefined) return;
-
-      let cor = "black";
-      if (num == 0) cor = "green";
-      else if (vermelhos.includes(num)) cor = "red";
-
-      lista.innerHTML += `<div class="numero ${cor}">${num}</div>`;
-    });
-
-  } catch (e) {
-    document.getElementById("lista").innerHTML = "Erro ao conectar API";
-    console.log("Erro:", e);
-  }
-}
-
-carregar();
-setInterval(carregar, 5000);
-</script>
-
-</body>
-</html>
+if numeros:
+    print(",".join(numeros))
+else:
+    print("Nenhum número encontrado")
